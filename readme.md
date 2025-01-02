@@ -1,6 +1,6 @@
 ## Description 
 
-The Drone Target Simulation is a Python-based tool designed to simulate drone movements and target interactions within specified geographical boundaries. It offers both 2D and 3D visualizations, real-time updates, and the ability to record simulation data for later analysis as a video.
+The Drone Target Simulation is a Python-based tool designed to simulate drone movements and target interactions within specified geographical boundaries. It provides both 2D and 3D visualizations, real-time updates and the ability to record simulation data as video for later analysis.
 
 ## Table of Contents
 - [Installation](#Installation)
@@ -18,7 +18,7 @@ pip install matplotlib pyproj zmq numpy
 ```
 # Setup
 
-The simulation requires two JSON files containing the initial and current positions of drones and targets.They will be all created inside the Data folder by search and rescue file(search_and_rescue_prompt_script_new_myChanges.py). You can change file locations inside the scripts **to do**. 
+The simulation requires two JSON files containing the initial and current positions of the drones and targets, all created inside the data folder by search and rescue file (search_and_rescue_prompt_script_new_myChanges.py). You can change the file locations within the scripts **to do**. 
 
 ```makefile
 a. Initial drone positions
