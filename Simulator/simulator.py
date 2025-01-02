@@ -17,6 +17,7 @@ import sys
 import random
 import zmq
 import numpy as np
+from utils import config
 
 # Configure logging
 logging.basicConfig(
@@ -1032,7 +1033,7 @@ def read_initial_positions_from_file():
     """
     logging.info("Reading initial drone positions...")
     try:
-        with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\charlie_shared_data\initial_drone_pos.json', 'r') as f:
+        with open(config.INITIAL_DRONE_POS_FILE, 'r') as f:
             data = json.load(f)
             logging.info(f"Read {len(data)} initial positions")
             return data, len(data)
@@ -1049,7 +1050,7 @@ def read_target_positions_from_file():
     """
     logging.info("Reading target positions...")
     try:
-        with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\other_data\target_positions.json', 'r') as f:
+        with open(config.TARGET_POS_FILE, 'r') as f:
             data = json.load(f)
             logging.info(f"Read {len(data)} target positions")
             return data, 0
@@ -1615,7 +1616,9 @@ if __name__ == "__main__":
         with open(data_file_path, 'w') as f:
             json.dump(sim.recorded_states, f, indent=4)
         logging.info(f"Recorded data saved to {data_file_path}")
-   
+
+        print(sim)
+        
         steps = detect_steps(sim)
         movement_frames = []
         for (name, start, end) in steps:
