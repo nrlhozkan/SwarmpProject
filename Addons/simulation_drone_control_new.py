@@ -208,7 +208,7 @@ def get_drone_positions():
   
     try:
         with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\charlie_shared_data\drone_pos.json', 'w') as f:
-            json.dump(drone_pos_data, f, indent=4)
+            json.dump(drone_pos_data, f, indent=4) # to do  
             
     except Exception as e:
         print(f'An error occurred: {e}')
@@ -217,7 +217,7 @@ def get_drone_positions():
        
 def read_target_positions_from_file():
     try:
-        with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\other_data\target_positions.json', 'r') as f:
+        with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\other_data\target_positions.json', 'r') as f: # to do
             target_drone_pos = json.load(f)
             n_positions = len(target_drone_pos)
             return target_drone_pos, n_positions
@@ -228,7 +228,7 @@ def read_target_positions_from_file():
 
 def read_drone_positions_from_file():
     try:
-        with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\charlie_shared_data\drone_pos.json', 'r') as f:
+        with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\charlie_shared_data\drone_pos.json', 'r') as f: # to do
             drone_pos = json.load(f)
             n_positions = len(drone_pos)
             return drone_pos, n_positions
