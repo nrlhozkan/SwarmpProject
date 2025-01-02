@@ -104,15 +104,15 @@ def generate_movement_prompt(col_avoidance_already_hinted, visibility_table, tar
 
     prompt += 'Each drone in the swarm must be moved according to the previous step.If they are assigned to any targets, they must move as per rule 1. If they are not assigned to any targets, they must move as per rule 2.The rules are as follows:\n'
     prompt += '\nRule 1: The assigned drones have to move towards the corresponding target positions in a straight-line path.'
-    prompt += '\nRule 2: The unassigned drones must continue looking for new targets in the specified area until all drones in the swarm are assigned to any targets.' 
-    prompt += '\nNote that if more than one drone is assigned to the same target, the drones must not collide with each other. The drones must maintain a minimum distance of 25m between each other at all times.'
+    prompt += '\nRule 2: The unassigned drones must continue searching for new targets in the specified area until all drones in the swarm are assigned to any targets. They must always move for searching.' 
+    # prompt += '\nNote that if more than one drone is assigned to the same target, the drones must not collide with each other. The drones must maintain a minimum distance of 25m between each other at all times.'
     
     # prompt += '\nDrones never collide with each other even they assigned to the same target.'
 
     if col_avoidance_already_hinted:
         prompt += '\nRemember to avoid collisions by applying the mentioned techniques.'
     else:
-        prompt += '\nNote that drones fly at the same altitude, so you have to make sure that drones avoid collisions during flight. Minimum allowed distance between drones is 25m.'
+        prompt += '\nNote that drones fly at the same altitude, so you have to make sure that drones avoid collisions during flight.'
         prompt += '\nTo avoid the collisions, you can calculate the speed of the drones and set these speeds to the drones and/or use the sleep function to pause the flight of the drones for a certain period of time, but make sure that the drones reach their destination as soon as possible (max-speed is 5m/s).'
 
     return prompt
@@ -412,8 +412,6 @@ def merge_position_coordinates(position_dict):
     return merged_positions
 
 ############### My Edition 4 start ################
-INITIAL_TARGET_POS_FILE = r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\other_data\target_positions.json'
-TARGET_POS_FILE = r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\other_data\target_positions.json'
 
 def write_target_positions(target_positions, target_pos_file):
 
@@ -488,7 +486,7 @@ if __name__ == '__main__':
     # setting up Charlie and begin to prompt
     
     ############### My Edition 1 start ################
-    write_target_positions(target_pos, INITIAL_TARGET_POS_FILE)
+    write_target_positions(target_pos, config.TARGET_POS_FILE)
     ############### My Edition 1 end ################
     
     print_target_positions(target_pos)
@@ -510,7 +508,7 @@ if __name__ == '__main__':
     update_target_positions(target_pos, experiment_folder, config.ALL_TARGET_POS_FILE)
     
     ############### My Edition 2 start ################
-    write_target_positions(target_pos, TARGET_POS_FILE)
+    write_target_positions(target_pos, config.TARGET_POS_FILE)
     ############### My Edition 2 end ##################
     
     log(LOG_TYPE_DEBUG, 'Writing initial positions to history file...')
@@ -585,7 +583,7 @@ if __name__ == '__main__':
             
             target_pos = calculate_new_target_positions(target_pos)
             
-            write_target_positions(target_pos, TARGET_POS_FILE)
+            write_target_positions(target_pos, config.TARGET_POS_FILE)
             ############### My Edition 3 end ################
             
             movement_prompt = generate_movement_prompt(
@@ -614,6 +612,9 @@ if __name__ == '__main__':
             target_pos = calculate_new_target_positions(target_pos)
             
             update_target_positions(target_pos, experiment_folder, config.ALL_TARGET_POS_FILE)
+        
+        print('\nDrone positions: ', drone_positions)
+        print('\nTarget positions: ', target_pos)
         
         print('\nFinished one loop iteration. Updated visibility')
 
