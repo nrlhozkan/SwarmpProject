@@ -1,24 +1,25 @@
-## Description 
+## Description
 
 The Drone Target Simulation is a Python-based tool designed to simulate drone movements and target interactions within specified geographical boundaries. It provides both 2D and 3D visualizations, real-time updates and the ability to record simulation data as video for later analysis.
 
 ## Table of Contents
+
 - [Installation](#Installation)
 - [Setup](#Setup)
 - [HowToRun](#HowToRun)
 
+# Installation
 
-#  Installation
-1. The script uses FFmpeg to create videos from simulation frames. Download and install from [FFmpeg]https://ffmpeg.org/download.html). 
-
+1. The script uses FFmpeg to create videos from simulation frames. Download and install from [FFmpeg]https://ffmpeg.org/download.html).
 2. Required python libraries.
 
-```bash 
+```bash
 pip install matplotlib pyproj zmq numpy
 ```
+
 # Setup
 
-The simulation requires two JSON files containing the initial and current positions of the drones and targets, all created inside the data folder by search and rescue file (search_and_rescue_prompt_script_new_myChanges.py). You can change the file locations within the scripts **to do**. 
+The simulation requires two JSON files containing the initial and current positions of the drones and targets, all created inside the data folder by search and rescue file (search_and_rescue_prompt_script_new_myChanges.py). You can change the file locations within the scripts (config and simulation_drone_control_new) **to do **.
 
 ```makefile
 a. Initial drone positions
@@ -97,16 +98,17 @@ C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\other_da
     }
 ]
 ```
+
 # HowToRun
 
 1. Start Charlie
-2. Run the search and rescue script in a separate terminal (**terminal 1**).  
-3. Press **g**. This will save the positions of the drones and targets. 
+2. Run the search and rescue script in a separate terminal (**terminal 1**).
+3. Press **g**. This will save the positions of the drones and targets.
 4. Run the simulation script in a separate terminal (**terminal2**).
-5. After step 5 this will be a normal process. 
+5. After step 5 this will be a normal process.
 6. If you decide to finish the test. Press **ctrl + c** on **terminal 2**.
-7. This will stop the live simulation and show you another simulation. This has sliders and test steps. Each waypoint command is a step. 
-8. When you close the simulation, it will save the simulation as a video inside the simulations folder. And it will save all the data from the simulation as a JSON file. You can use this to show and view the simulation again later. You can use post_processor.py 
+7. This will stop the live simulation and show you another simulation. This has sliders and test steps. Each waypoint command is a step.
+8. When you close the simulation, it will save the simulation as a video inside the simulations folder. And it will save all the data from the simulation as a JSON file. You can use this to show and view the simulation again later. You can use post_processor.py
 
 # Specific Scripts
 
@@ -121,7 +123,3 @@ A few notes: The speeds of the drones are multiplied by 10 to reach the desired 
 This is a post processor that simulates the same simulation after pressing crtl + c in the main simulation. When you run it, it will ask you to specify the location of the recorded states file (recorded_states.json). (*The location of the file is where you run the simulation script*)
 
 3. The rest is mostly the same code. I just add some functionality.
-
-
-
-
