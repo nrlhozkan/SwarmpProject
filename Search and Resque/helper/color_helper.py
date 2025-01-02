@@ -1,0 +1,1 @@
+RED_50_PERCENT_OPACITY = (1, 0, 0, 0.5)
