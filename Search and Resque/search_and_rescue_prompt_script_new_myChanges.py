@@ -27,10 +27,10 @@ def generate_initial_prompt(latitude_range, longitude_range, drone_pos):
     number_drones = len(drone_pos)
 
     message = (
-        f' You are tasked with controlling a drone swarm of {number_drones} drone{"s" if number_drones > 1 else ""} to search for targets in' # I changed this prompt
+        f'You are tasked with controlling a drone swarm of {number_drones} drone{"s" if number_drones > 1 else ""} to search for targets in'
         f' a rectangular search area spanning from GPS point ({latitude_range[0]} | {longitude_range[0]}) to ({latitude_range[1]} | {longitude_range[1]}),'
         f' given as (latitude | longitude). The targets can be both stationary and non-stationary.\n'
-        f'The drones are currently positioned as follows:\n'
+        f' The drones are currently positioned as follows:\n'
     )
 
     # target data
@@ -48,18 +48,19 @@ def keep_searching(context_and_pos_prompt, col_avoidance_already_hinted, curr_se
         f'Move the drones {"again " if col_avoidance_already_hinted else ""}using the script simulation_drone_control_new to keep searching for targets.'
         ' Choose freely where to move the drones next in the previously specified search area. The search should be efficient and cover the entire search area.'
         ' Avoid covering the same spots with different drones at short time intervals.'
-        # 'Ensure that the entire search area is covered efficiently without overlapping search paths for different drones.'
-        'The unassigned drones have to move to continue searching for new targets in the specified area.' # I added this line
+        ' Ensure that the entire search area is covered efficiently without overlapping search paths for different drones.'
+        # ' The unassigned drones have to move to continue searching for new targets in the specified area.'
     )
 
     if col_avoidance_already_hinted:
-        message += ' Remember to avoid collisions by applying the mentioned techniques.'
+        message += '\nRemember to avoid collisions by applying the mentioned techniques.'
     else:
-        message += ' Note that drones fly at the same altitude, so avoid collisions during flight between drones.'
-        message += (
-            '\nYou can calculate and set the speed or use the sleep function to pause the flight for a specific duration to avoid collisions,'
-            ' but make sure to aim for an optimal solution in terms of flight duration per drone and in total (max-speed is 5m/s)')
+        message += '\nNote that drones fly at the same altitude, so you have to make sure that drones avoid collisions during flight.'
+        message += '\nTo avoid the collisions, you can calculate the speed of the drones and set these speeds to the drones and/or use the sleep function to pause the flight of the drones for a certain period of time, but make sure that the drones reach their destination as soon as possible (max-speed is 5m/s).'
 
+        
+    # To avoid the collisions, you can calculate the speed of the drones and set these speeds to the drones and/or use the sleep function to pause the flight of the drones for a certain period of time, but make sure that the drones reach their destination as soon as possible (max-speed is 5m/s).
+    
     log(LOG_TYPE_DEBUG, 'Search prompt:')
     print(message)
 
@@ -68,6 +69,53 @@ def keep_searching(context_and_pos_prompt, col_avoidance_already_hinted, curr_se
     print(f'\n Keep searching prompt: {message}')
     print(f'\n Keep searching response: {res}')
 
+def generate_drone_assignment_prompt(distance_table):
+    num_drones, num_targets = distance_table.shape
+
+    prompt = (
+        f'This is the updated distance adjacency matrix (meters) after moving the drones.'
+        f' Note that cells has -1 mean the the drone can not see the target.\n'
+        f'Drone ID: {[f"Target {i}" for i in range(1, num_targets + 1)]}\n'
+    )
+
+    for i in range(num_drones):
+        distance_row = [distance_table[i, j].item() for j in range(num_targets)]
+        prompt += f'Drone {i + 1}: {distance_row}\n'
+
+    prompt += (
+        '\nDetermine the most efficient drone-to-target assignment to minimize the overall distance between the assigned pairs.' 
+        ' A trade-off must be made between assigning multiple drones to the same target and leaving some drones unassigned for use in the search for further targets later, in case there are more drones than visible targets.' 
+        ' Show the assigned drones and unassigned drones in two separate lists similar to Assigned drones = [drone1, drone2, ...], Unassigned drones = [drone3, drone4, ...].'
+    )
+
+    return prompt
+
+
+def generate_movement_prompt(col_avoidance_already_hinted, visibility_table, target_positions):
+    # initial instruction
+    prompt = 'You are given a table specifying the positions (latitude, longitude) of currently visible targets.\n'
+
+    # target data
+    for i, target in enumerate(target_positions):
+
+        # only print target positions for targets that are visible
+        if np.sum(visibility_table[:, i]) > 0:
+            prompt += f'target {target["id"]}: ({target["position"].latitude}, {target["position"].longitude})\n'
+
+    prompt += 'Each drone in the swarm must be moved according to the previous step.If they are assigned to any targets, they must move as per rule 1. If they are not assigned to any targets, they must move as per rule 2.The rules are as follows:\n'
+    prompt += '\nRule 1: The assigned drones have to move towards the corresponding target positions in a straight-line path.'
+    prompt += '\nRule 2: The unassigned drones must continue looking for new targets in the specified area until all drones in the swarm are assigned to any targets.' 
+    prompt += '\nNote that if more than one drone is assigned to the same target, the drones must not collide with each other. The drones must maintain a minimum distance of 25m between each other at all times.'
+    
+    # prompt += '\nDrones never collide with each other even they assigned to the same target.'
+
+    if col_avoidance_already_hinted:
+        prompt += '\nRemember to avoid collisions by applying the mentioned techniques.'
+    else:
+        prompt += '\nNote that drones fly at the same altitude, so you have to make sure that drones avoid collisions during flight. Minimum allowed distance between drones is 25m.'
+        prompt += '\nTo avoid the collisions, you can calculate the speed of the drones and set these speeds to the drones and/or use the sleep function to pause the flight of the drones for a certain period of time, but make sure that the drones reach their destination as soon as possible (max-speed is 5m/s).'
+
+    return prompt
 
 def generate_target_positions(n, lat_from_to, lon_from_to) -> list:  # it is used to generate initial target positions 
     target_positions = list()
@@ -99,7 +147,7 @@ def print_target_positions(target_data):
     print(tabulate(positions, headers=headers, tablefmt="fancy_grid"))
 
 
-def get_visibility_scores(drone_pos: list, target_positions: list):
+def get_visibility_scores(ref, drone_pos: list, target_positions: list):
     vis_mtrx = []
 
     for drone in drone_pos:
@@ -111,6 +159,7 @@ def get_visibility_scores(drone_pos: list, target_positions: list):
 
             # Calculate the distance between drone and target
             distance = position_helper.calculate_distance_meters(
+                ref, 
                 drone_position,
                 target_pos
             )
@@ -126,7 +175,7 @@ def get_visibility_scores(drone_pos: list, target_positions: list):
 
     return np.array(vis_mtrx)
 
-def get_distances(drone_pos: list, target_positions: list):
+def get_distances(ref, drone_pos: list, target_positions: list):
     dist_mtrx = []
 
     for drone in drone_pos:
@@ -138,6 +187,7 @@ def get_distances(drone_pos: list, target_positions: list):
 
             # Calculate the distance between drone and target
             distance = position_helper.calculate_distance_meters(
+                ref,
                 drone_position,
                 target_position
             )
@@ -180,51 +230,6 @@ def print_adj_matrix(visibility_table, matrix_type):
 
     print(f'\nAdjacency matrix containing the {matrix_type}')
     print(tabulate(drones, headers=headers, tablefmt="fancy_grid"))
-
-def generate_drone_assignment_prompt(distance_table):
-    num_drones, num_targets = distance_table.shape
-
-    prompt = (
-        f'This is the updated distance adjacency matrix (meters) after moving the drones.'
-        f' Note that empty cells mean the the drone cannot see the target.\n'
-        f'Drone ID: {[f"Target {i}" for i in range(1, num_drones + 1)]}\n'
-    )
-
-    for i in range(num_drones):
-        distance_row = [distance_table[i, j].item() for j in range(num_targets)]
-        prompt += f'Drone {i + 1}: {distance_row}\n'
-
-    prompt += (
-        '\nDetermine the optimal drone-to-target assignment such that the overall distance is minimized between the assigned pairs.'
-        ' Weight up between assigning multiple drones to the same target and leaving some drones unassigned to use them for the search for'
-        ' further targets later in case there are more drones than visible targets.'
-    )
-
-    return prompt
-
-
-def generate_movement_prompt(col_avoidance_already_hinted, visibility_table, target_positions):
-    # initial instruction
-    prompt = 'You are given a table specifying the positions (latitude, longitude) of currently visible targets.\n'
-
-    # target data
-    for i, target in enumerate(target_positions):
-
-        # only print target positions for targets that are visible
-        if np.sum(visibility_table[:, i]) > 0:
-            prompt += f'target {target["id"]}: ({target["position"].latitude}, {target["position"].longitude})\n'
-
-    prompt += 'Each drone of the swarm must be moved according to the assignment in the previous step, following these two rules:\n'
-    prompt += '\n * Assigned drones: Move to the corresponding target in a straight-line path.'
-    prompt += '\n * Unassigned drones: Continue searching for new targets in the specified area.\n'
-
-    if col_avoidance_already_hinted:
-        prompt += '\nRemember to avoid collisions by applying the mentioned techniques.'
-    else:
-        prompt += '\nNote that drones fly at the same altitude, so avoid collisions during flight between drones.'
-        prompt += '\nYou can calculate and set the speed or use the sleep function to pause the flight for a specific duration to avoid collisions, but make sure the drones reach their destination as early as possible (max- speed is 5m/s)'
-
-    return prompt
 
 
 def update_target_positions(target_positions, directory, file_name):
@@ -334,7 +339,7 @@ def write_initial_drone_pos(initial_positions, target_file):
             initial_pos_file, indent=4
         )
 
-def calculate_new_target_positions(targets): # This function is used to get the target positions from the simulation
+def calculate_new_target_positions(targets):
     context = zmq.Context()
     socket = context.socket(zmq.SUB)
     pub_address = "tcp://localhost:5557"  # Publisher address
@@ -407,10 +412,10 @@ def merge_position_coordinates(position_dict):
     return merged_positions
 
 ############### My Edition 4 start ################
-INITIAL_TARGET_POS_FILE = r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\other_data\target_positions.json' # to do: change this path
-TARGET_POS_FILE = r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\other_data\target_positions.json' # to do: change this path
+INITIAL_TARGET_POS_FILE = r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\other_data\target_positions.json'
+TARGET_POS_FILE = r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\other_data\target_positions.json'
 
-def write_target_positions(target_positions, target_pos_file): # This function is used to write the target positions to a file
+def write_target_positions(target_positions, target_pos_file):
 
     with open(target_pos_file, 'w') as pos_file:
         json.dump(
@@ -428,10 +433,10 @@ def write_target_positions(target_positions, target_pos_file): # This function i
 ############### My Edition 4 end ################
 
 if __name__ == '__main__':
-
+    
     # prompting  parameters
     debug_mode = False
-    move_targets = False
+    move_targets = True
 
     chat_id = 'SR3'
     chat_name = 'S&R loop'
@@ -453,7 +458,11 @@ if __name__ == '__main__':
         # ~250m x ~250m
         lat_range = (48, 48.0025)  # from lat to lat
         lon_range = (14, 14.00371)  # from lon to lon
-
+        
+    # Coordinate Converter reference position  
+    reference_position = [lat_range[0], lon_range[0]]
+    print('Reference Position: ', reference_position)
+    
     # get path to experiment folder base path + folder name for current experiment
     experiment_folder = os.path.join(config.EXPERIMENT_BASE_FOLDER, datetime.now().strftime(config.EXPERIMENT_FOLDER_FORMAT))
     # experiment_folder = os.path.join(EXPERIMENT_BASE_FOLDER, 'data_01_12_2024_17_35_43')
@@ -479,7 +488,7 @@ if __name__ == '__main__':
     # setting up Charlie and begin to prompt
     
     ############### My Edition 1 start ################
-    write_target_positions(target_pos, INITIAL_TARGET_POS_FILE) # This function is used to write the target positions to a file
+    write_target_positions(target_pos, INITIAL_TARGET_POS_FILE)
     ############### My Edition 1 end ################
     
     print_target_positions(target_pos)
@@ -501,7 +510,7 @@ if __name__ == '__main__':
     update_target_positions(target_pos, experiment_folder, config.ALL_TARGET_POS_FILE)
     
     ############### My Edition 2 start ################
-    write_target_positions(target_pos, TARGET_POS_FILE) # This function is used to write the target positions to a file
+    write_target_positions(target_pos, TARGET_POS_FILE)
     ############### My Edition 2 end ##################
     
     log(LOG_TYPE_DEBUG, 'Writing initial positions to history file...')
@@ -574,9 +583,9 @@ if __name__ == '__main__':
             
             # For plotting assignments 
             
-            target_pos = calculate_new_target_positions(target_pos) # This function is used to get the target positions from the simulation
+            target_pos = calculate_new_target_positions(target_pos)
             
-            write_target_positions(target_pos, TARGET_POS_FILE) # This function is used to write the target positions to a file
+            write_target_positions(target_pos, TARGET_POS_FILE)
             ############### My Edition 3 end ################
             
             movement_prompt = generate_movement_prompt(
@@ -605,13 +614,13 @@ if __name__ == '__main__':
             target_pos = calculate_new_target_positions(target_pos)
             
             update_target_positions(target_pos, experiment_folder, config.ALL_TARGET_POS_FILE)
-
+        
         print('\nFinished one loop iteration. Updated visibility')
 
         # update visibility matrix
-        visibility_matrix = get_visibility_scores(drone_positions, target_pos)
+        visibility_matrix = get_visibility_scores(reference_position, drone_positions, target_pos)
         filtered_vis_mtrx = filter_visibility_matrix(visibility_matrix)
-        distance_matrix = get_distances(drone_positions, target_pos)
+        distance_matrix = get_distances(reference_position, drone_positions, target_pos)
 
         update_distance_file(distance_matrix, experiment_folder, config.ALL_DISTANCES_FILE)
 

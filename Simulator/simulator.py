@@ -54,7 +54,7 @@ def plot_target_3d(ax, position, converter, color='red', name='T1'):
     label = ax.text(lon, lat, alt + 0.5, name, color='black', fontsize=10, ha='center', va='bottom')
 
     radius = 100.0
-    angles = np.linspace(0, 2*np.pi, 100)
+    angles = np.linspace(0, 2*np.pi, 100) 
     x_center, y_center = converter.latlon_to_xy(lat, lon)
     circle_x = x_center + radius * np.cos(angles)
     circle_y = y_center + radius * np.sin(angles)
@@ -279,9 +279,13 @@ class Simulation:
 
         self.targets_should_move = False
         self.client_sockets = []
+        # self.notif_socket = None
 
+        # self.notif_host = notif_host
+        # self.notif_port = notif_port
         self.pub_port = pub_port
 
+        # self.setup_notification_socket()
         self.setup_publisher()
 
         self.command_listener_thread = threading.Thread(target=self.start_command_listener, daemon=True)
@@ -290,6 +294,18 @@ class Simulation:
         self.simulation_time = 0.0
         self.last_heading_change_time = 0.0
         self.drone_commands = {}
+
+    # def setup_notification_socket(self):
+    #     """
+    #     Set up a TCP socket to notify external scripts of events.
+    #     """
+    #     self.notif_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #     try:
+    #         self.notif_socket.connect((self.notif_host, self.notif_port))
+    #         logging.info(f"Connected to notification listener at {self.notif_host}:{self.notif_port}")
+    #     except socket.error as e:
+    #         logging.error(f"Failed to connect to notification listener: {e}")
+    #         self.notif_socket = None
 
     def setup_publisher(self):
         """
@@ -440,19 +456,31 @@ class Simulation:
 
     def assign_drone_to_target(self, drone_id: int, target_id: int):
         """
-        Assign or reassign a drone to a target.
+        Assign or unassign a drone to a target.
+        - If target_id is 0, it means the drone should have no assignment; 
+        remove any existing assignment for that drone.
+        - If target_id is non-zero, assign or reassign the drone to that target.
+        Any previous assignment is overwritten.
         """
-        logging.info(f'Current assignments: {self.assignments}')
+        logging.info(f"Current assignments: {self.assignments}")
         previous_target_id = self.assignments.get(drone_id)
-        self.assignments[drone_id] = target_id
-        
-        if previous_target_id == target_id:
-            logging.info(f"Drone {drone_id} is already assigned to Target {target_id}")
-        elif previous_target_id and previous_target_id != target_id:
-            logging.info(f"Drone {drone_id} reassigned from Target {previous_target_id} to Target {target_id}")
-            self.assignments.pop(previous_target_id, None)
+
+        if target_id == 0:
+            # Unassign the drone entirely
+            if drone_id in self.assignments:
+                self.assignments.pop(drone_id)
+                logging.info(f"Drone {drone_id} unassigned from Target {previous_target_id}")
+            else:
+                logging.info(f"Drone {drone_id} was not assigned to any target.")
         else:
-            logging.info(f"Drone {drone_id} assigned to Target {target_id}")
+            # Assign the drone to the new target (overwrites old assignment)
+            self.assignments[drone_id] = target_id
+            if previous_target_id == target_id:
+                logging.info(f"Drone {drone_id} is already assigned to Target {target_id}")
+            elif previous_target_id and previous_target_id != target_id:
+                logging.info(f"Drone {drone_id} reassigned from Target {previous_target_id} to Target {target_id}")
+            else:
+                logging.info(f"Drone {drone_id} assigned to Target {target_id}")
 
     def set_drone_speed(self, drone_id: int, speed: float, command_id: str = None):
         """
@@ -740,7 +768,7 @@ class Visualizer:
         self.converter = simulation.converter
 
         # Create figure with both 3D and 2D axes
-        self.fig = plt.figure(figsize=(15, 15), dpi=100, facecolor='white')
+        self.fig = plt.figure(figsize=(16, 9), dpi=100, facecolor='white')
         self.ax_3d = self.fig.add_subplot(111, projection='3d')
         self.ax_3d.set_facecolor('white')
         self.ax_3d.grid(True)
@@ -754,7 +782,8 @@ class Visualizer:
         self.ax_3d.set_zlabel("Altitude (m)")
         self.ax_3d.set_title("Live Drone & Target Simulation (3D)")
 
-        self.ax_2d = self.fig.add_axes([0.25,0.1,0.8,0.8]) # [left, bottom, width, height]
+        # 2D axes
+        self.ax_2d = self.fig.add_axes([0.25, 0.1, 0.7, 0.7])  # [left, bottom, width, height]
         self.ax_2d.set_facecolor('white')
         self.ax_2d.grid(True)
         self.ax_2d.set_xlim(min_lon, max_lon)
@@ -765,7 +794,11 @@ class Visualizer:
         self.ax_2d.set_visible(False)
         self.ax_2d.set_aspect('equal', adjustable='box')
 
-    
+        # Axis for the distance table
+        self.ax_table = self.fig.add_axes([0.05, 0.1, 0.19, 0.4]) # [left, bottom, width, height]
+        self.ax_table.axis('off')
+        self.distance_table = None
+
         self.is_2d_mode = False
         self.drone_artists = []
         self.target_artists = []
@@ -775,8 +808,8 @@ class Visualizer:
         self.target_info_text = []
         self.fig.canvas.mpl_connect('close_event', self.on_close)
 
-        # Add button to toggle between 2D and 3D
-        ax_button_2d3d = self.fig.add_axes([0.0, 0.0, 0.1, 0.05]) # [left, bottom, width, height]
+        # Add a button to toggle between 2D and 3D
+        ax_button_2d3d = self.fig.add_axes([0.0, 0.0, 0.1, 0.05])  # [left, bottom, width, height]
         self.button_2d3d = Button(ax_button_2d3d, '2D/3D', color='white', hovercolor='0.975')
         self.button_2d3d.on_clicked(self.toggle_2d3d)
 
@@ -812,16 +845,24 @@ class Visualizer:
     def update_plot(self, frame):
         """
         Update the plot at each frame of the live animation.
+        Includes updating a table of drone-target distances in meters.
+        Altitude is excluded from distance calculations.
         """
+        # If the figure is closed, stop the animation
         if not plt.fignum_exists(self.fig.number):
             if self.anim and self.anim.event_source:
                 self.anim.event_source.stop()
             return
 
+        # Decide which axes to use
         ax = self.ax_2d if self.is_2d_mode else self.ax_3d
         self.clear_artists(ax)
 
-        # Plot drones
+        # Clear and hide anything from a previous table
+        self.ax_table.clear()
+        self.ax_table.axis('off')
+
+        # ---- Plot drones ----
         for i, drone in enumerate(self.simulation.drones):
             lat, lon = self.converter.xy_to_latlon(drone.x, drone.y)
             if self.is_2d_mode:
@@ -831,7 +872,7 @@ class Visualizer:
                 drone_art = plot_drone_3d(ax, (lat, lon, alt), name=f'D{drone.drone_id}')
             self.drone_artists.extend(drone_art)
 
-        # Plot targets
+        # ---- Plot targets ----
         for i, target in enumerate(self.simulation.targets):
             lat, lon = self.converter.xy_to_latlon(target.x, target.y)
             if self.is_2d_mode:
@@ -841,7 +882,7 @@ class Visualizer:
                 target_art = plot_target_3d(ax, (lat, lon, alt), self.converter, name=f'T{target.target_id}')
             self.target_artists.extend(target_art)
 
-        # Plot assignment lines
+        # ---- Plot assignment lines ----
         for d_id, t_id in self.simulation.assignments.items():
             d = next((x for x in self.simulation.drones if x.drone_id == d_id), None)
             t = next((y for y in self.simulation.targets if y.target_id == t_id), None)
@@ -853,44 +894,87 @@ class Visualizer:
                 else:
                     dalt = d.position[2]
                     talt = t.position[2]
-                    line, = ax.plot([dlon, tlon], [dlat, tlat], [dalt, talt], linestyle='--', linewidth=2, color='magenta')
+                    line, = ax.plot([dlon, tlon], [dlat, tlat], [dalt, talt],
+                                    linestyle='--', linewidth=2, color='magenta')
                 self.assignment_lines.append(line)
 
-        # Draw target headings
+        # ---- Draw target headings ----
         for i, target in enumerate(self.simulation.targets):
             lat, lon = self.converter.xy_to_latlon(target.x, target.y)
             heading = target.heading
             if self.is_2d_mode:
-                arrow = draw_heading_arrow_2d(ax, lat, lon, heading, length=0.00035)
+                arrow = draw_heading_arrow_2d(ax, lat, lon, heading, length=0.00015)
                 self.assignment_lines.append(arrow)
             else:
                 math_angle = math.radians(90 - heading)
                 dx = math.cos(math_angle)*0.00035
                 dy = math.sin(math_angle)*0.00035
                 alt = target.z
-                arrow = ax.quiver(lon, lat, alt, dx, dy, 0, length=0.5, normalize=False, color='red', arrow_length_ratio=0.3)
+                arrow = ax.quiver(lon, lat, alt, dx, dy, 0,
+                                  length=0.5, normalize=False, color='red',
+                                  arrow_length_ratio=0.3)
                 self.assignment_lines.append(arrow)
 
-        # Add info text
+        # ---- Info text for drones ----
         p = 0.95
         for i, drone in enumerate(self.simulation.drones):
             lat, lon = self.converter.xy_to_latlon(drone.x, drone.y)
             alt = drone.z if not self.is_2d_mode else 0
             speed = drone.speed
-            text = self.fig.text(0.02, p, f'D{drone.drone_id}: Lat={lat:.6f}, Lon={lon:.6f}, Alt={alt:.2f}m, Speed={speed:.2f} m/s', 
-                                 fontsize=10, ha='left', va='top')
+            text = self.fig.text(
+                0.02, p,
+                f'D{drone.drone_id}: Lat={lat:.6f}, Lon={lon:.6f}, Alt={alt:.2f}m, Speed={speed:.2f} m/s',
+                fontsize=10, ha='left', va='top'
+            )
             self.drone_info_text.append(text)
             p -= 0.02
 
+        # ---- Info text for targets ----
         p -= 0.05
         for i, target in enumerate(self.simulation.targets):
             lat, lon = self.converter.xy_to_latlon(target.x, target.y)
             alt = target.z if not self.is_2d_mode else 0
             heading = target.heading
             speed = target.speed
-            text = self.fig.text(0.02, p - i*0.02, f'T{target.target_id}: Lat={lat:.6f}, Lon={lon:.6f}, Heading={heading:.2f}°', 
-                                 fontsize=10, ha='left', va='top')
+            text = self.fig.text(
+                0.02, p - i*0.02,
+                f'T{target.target_id}: Lat={lat:.6f}, Lon={lon:.6f}, Heading={heading:.2f}°',
+                fontsize=10, ha='left', va='top'
+            )
             self.target_info_text.append(text)
+
+        # ---- Build and display distance table (in meters) ----
+        # We compute only the horizontal (x,y) distance in UTM (ignore altitude).
+        drone_ids = [f"D{d.drone_id}" for d in self.simulation.drones]
+        target_ids = [f"T{t.target_id}" for t in self.simulation.targets]
+
+        distances = []
+        for d in self.simulation.drones:
+            row = []
+            for t in self.simulation.targets:
+                dx = d.x - t.x
+                dy = d.y - t.y
+                # Skip altitude difference
+                dist_m = math.sqrt(dx*dx + dy*dy)
+                # if dist_m > 100: # similar to search and rescue script
+                #     dist_m = -1
+                row.append(f"{dist_m:.3f}")
+            distances.append(row)
+
+        # Create the table in ax_table
+        self.distance_table = self.ax_table.table(
+            cellText=distances,
+            rowLabels=drone_ids,
+            colLabels=target_ids,
+            cellLoc='center',
+            loc='upper left', 
+            # if distances are less than and equal to 100, the cell color will be red
+            cellColours=np.where(np.array(distances, dtype=float) < 100, 'yellow', 'white'),
+        )
+        # Adjust fonts and table scaling as needed
+        self.distance_table.auto_set_font_size(False)
+        self.distance_table.set_fontsize(8)
+        self.distance_table.scale(1.2, 1.5)
 
     def start(self):
         """
@@ -1211,7 +1295,7 @@ def create_step_view_auto(sim: Simulation, lat_range: Tuple[float, float], lon_r
             lat = tpos[1]
             lon = tpos[0]
             if is_2d_mode:
-                arrow = draw_heading_arrow_2d(ax_current, lat, lon, heading, length=0.00035)
+                arrow = draw_heading_arrow_2d(ax_current, lat, lon, heading, length=0.00015)
                 arrows.append(arrow)
             else:
                 math_angle = math.radians(90 - heading)
@@ -1455,7 +1539,7 @@ def create_video_from_movement_frames(sim: Simulation, output_filename: str, lat
     finally:
         plt.close(fig)
 
-def stand_alone():
+def main():
     """
     Run the simulation in stand-alone mode: read initial positions, start simulation and visualization.
     """
@@ -1466,9 +1550,9 @@ def stand_alone():
         logging.error("No initial drone positions found. Exiting simulation.")
         return None, None
 
-    first_pos = initial[0]
-    ref_lat = first_pos["latitude"]
-    ref_lon = first_pos["longitude"]
+    ref_lat = BORDER_LAT_RANGE[0] 
+    ref_lon = BORDER_LON_RANGE[0]
+    
     sim.converter = CoordinateConverter(ref_lat, ref_lon)
     logging.info(f"Reference point set to latitude: {ref_lat}, longitude: {ref_lon}")
 
@@ -1498,7 +1582,7 @@ def stand_alone():
     return sim, out_folder
 
 if __name__ == "__main__":
-    sim, output_folder = stand_alone()
+    sim, output_folder = main()
     
     logging.info("Starting simulation...")
     logging.info(f"Output folder: {output_folder}")
@@ -1508,8 +1592,8 @@ if __name__ == "__main__":
     if sim is None:
         sys.exit(1)
 
-    lat_range = (48.0000, 48.0045)
-    lon_range = (14.0000, 14.00671)
+    lat_range = (47.9990, 48.0055)
+    lon_range = (13.99990, 14.00681)
 
     sim_thread = threading.Thread(target=simulation_thread, args=(sim,), daemon=True)
     sim_thread.start()
@@ -1531,7 +1615,7 @@ if __name__ == "__main__":
         with open(data_file_path, 'w') as f:
             json.dump(sim.recorded_states, f, indent=4)
         logging.info(f"Recorded data saved to {data_file_path}")
-
+   
         steps = detect_steps(sim)
         movement_frames = []
         for (name, start, end) in steps:

@@ -7,7 +7,7 @@ from geopy import Point
 from geopy.distance import geodesic
 import zmq
 
-description = "control drones, move_to(latitude, longitude, absolute altitude above ground meters) example: move_to(41.902856, 12.496478, 10) use move_to for moving or flying drone to specific GPS coordinates, get_position() returns current position GPS coordinates where drone is now and altitude above ground meters and heading degrees 0..359 , set_drone_speed(drone speed meters per second) example: set_drone_speed(5) used to adjust or change or define the flying speed of the drone, rotate_gimbal(pitch degrees 20..-90) example: rotate_gimbal(-90), sleep(duration ms) example: sleep(250), Note: all instruction parameters are numbers, move and fly are treated as the same action and are synonyms."
+description = "control drones, move_to(latitude, longitude, absolute altitude above ground meters) example: move_to(41.902856, 12.496478, 10) use move_to for moving or flying drone to specific GPS coordinates, get_position() returns current position GPS coordinates where drone is now and altitude above ground meters and heading degrees 0..359 , set_drone_speed(drone speed meters per second) example: set_drone_speed(5) used to adjust or change or define the flying speed of the drone, rotate_gimbal(pitch degrees 20..-90) example: rotate_gimbal(-90), Note: all instruction parameters are numbers, move and fly are treated as the same action and are synonyms."
 
 parameters = {
     "type": "object",
@@ -71,7 +71,7 @@ if not SIMULATION:
 else:
     simulated_drone_variables = {}
     
-def send_command(command, host='localhost', port=5555): # default host and port
+def send_command(command, host='localhost', port=5555):
     """Send a command to the simulation."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((host, port))
@@ -207,7 +207,7 @@ def get_drone_positions():
         drone_pos_data.append(telemetry)
   
     try:
-        with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\charlie_shared_data\drone_pos.json', 'w') as f:  # to do: change path
+        with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\charlie_shared_data\drone_pos.json', 'w') as f:
             json.dump(drone_pos_data, f, indent=4)
             
     except Exception as e:
@@ -217,7 +217,7 @@ def get_drone_positions():
        
 def read_target_positions_from_file():
     try:
-        with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\other_data\target_positions.json', 'r') as f: # to do: change path
+        with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\other_data\target_positions.json', 'r') as f:
             target_drone_pos = json.load(f)
             n_positions = len(target_drone_pos)
             return target_drone_pos, n_positions
@@ -228,7 +228,7 @@ def read_target_positions_from_file():
 
 def read_drone_positions_from_file():
     try:
-        with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\charlie_shared_data\drone_pos.json', 'r') as f: # to do: change path
+        with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\charlie_shared_data\drone_pos.json', 'r') as f:
             drone_pos = json.load(f)
             n_positions = len(drone_pos)
             return drone_pos, n_positions
@@ -240,7 +240,7 @@ def read_drone_positions_from_file():
 def read_initial_positions_from_file():
     # read initial positions
     print('Reading initial positions from file...')
-    with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\charlie_shared_data/initial_drone_pos.json', 'r') as f: # to do: change path
+    with open(r'C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\charlie_shared_data/initial_drone_pos.json', 'r') as f:
         initial_drone_pos = json.load(f)
         n_positions = len(initial_drone_pos)
         print(f'Successfully read {n_positions} initial positions')
@@ -350,49 +350,49 @@ def run_drone(drones, instructions):
 
             # print(f"Processing for Drone {drone} - Instruction: {instruction_type}, Parameters: {parameters}")
 
-            # def move(drone_id, distance, direction, abs_altitude):
+            def move(drone_id, distance, direction, abs_altitude):
 
-            #     if SIMULATION:
+                if SIMULATION:
 
-            #         lat = simulated_drone_variables[drone_id]['latitude']
-            #         lon = simulated_drone_variables[drone_id]['longitude']
-            #         alt = simulated_drone_variables[drone_id]['altitude']
-            #         speed = simulated_drone_variables[drone_id]['speed']
-            #         heading = simulated_drone_variables[drone_id]['heading']
+                    lat = simulated_drone_variables[drone_id]['latitude']
+                    lon = simulated_drone_variables[drone_id]['longitude']
+                    alt = simulated_drone_variables[drone_id]['altitude']
+                    speed = simulated_drone_variables[drone_id]['speed']
+                    heading = simulated_drone_variables[drone_id]['heading']
 
-            #         start = Point(lat, lon, abs_altitude)
-            #         horizontal_distance = distance * math.cos(math.radians(0))
-            #         d = geodesic(meters=horizontal_distance)
-            #         destination = d.destination(start, direction)
+                    start = Point(lat, lon, abs_altitude)
+                    horizontal_distance = distance * math.cos(math.radians(0))
+                    d = geodesic(meters=horizontal_distance)
+                    destination = d.destination(start, direction)
 
-            #         new_lat = destination.latitude
-            #         new_lon = destination.longitude
-            #         previous_altitude = alt
+                    new_lat = destination.latitude
+                    new_lon = destination.longitude
+                    previous_altitude = alt
 
-            #         if abs_altitude <= 0 and previous_altitude != 0:
-            #             abs_altitude = previous_altitude
+                    if abs_altitude <= 0 and previous_altitude != 0:
+                        abs_altitude = previous_altitude
 
-            #         if abs_altitude > MAX_ALTITUDE:
-            #             abs_altitude = MAX_ALTITUDE
+                    if abs_altitude > MAX_ALTITUDE:
+                        abs_altitude = MAX_ALTITUDE
 
-            #         new_alt = abs_altitude
+                    new_alt = abs_altitude
 
-            #         simulated_drone_variables[drone_id]['latitude'] = new_lat
-            #         simulated_drone_variables[drone_id]['longitude'] = new_lon
-            #         simulated_drone_variables[drone_id]['altitude'] = new_alt
-            #         simulated_drone_variables[drone_id]['speed'] = speed
-            #         simulated_drone_variables[drone_id]['heading'] = direction
+                    simulated_drone_variables[drone_id]['latitude'] = new_lat
+                    simulated_drone_variables[drone_id]['longitude'] = new_lon
+                    simulated_drone_variables[drone_id]['altitude'] = new_alt
+                    simulated_drone_variables[drone_id]['speed'] = speed
+                    simulated_drone_variables[drone_id]['heading'] = direction
 
-            #         lat = simulated_drone_variables[drone_id]['latitude']
-            #         lon = simulated_drone_variables[drone_id]['longitude']
-            #         alt = simulated_drone_variables[drone_id]['altitude']
-            #         speed = simulated_drone_variables[drone_id]['speed']
-            #         heading = simulated_drone_variables[drone_id]['heading']
+                    lat = simulated_drone_variables[drone_id]['latitude']
+                    lon = simulated_drone_variables[drone_id]['longitude']
+                    alt = simulated_drone_variables[drone_id]['altitude']
+                    speed = simulated_drone_variables[drone_id]['speed']
+                    heading = simulated_drone_variables[drone_id]['heading']
 
-            #         print(
-            #             f'Drone {drone_id} is at {lat}, {lon} GPS position with altitude {alt} and heading {heading}.')
+                    print(
+                        f'Drone {drone_id} is at {lat}, {lon} GPS position with altitude {alt} and heading {heading}.')
 
-            #         return f'Drone {drone_id} is at {lat}, {lon} GPS position with altitude {alt} and heading {heading}.'
+                    return f'Drone {drone_id} is at {lat}, {lon} GPS position with altitude {alt} and heading {heading}.'
 
             def sleep(drone_id, duration):
                 
@@ -445,6 +445,13 @@ def run_drone(drones, instructions):
                                 "target_id": target['id']
                             }
                             send_command(command)
+                        else:
+                            print(f'Drone{drone_id} is not assigned to any target')
+                            command = {
+                                "action": "assign_drone_to_target",
+                                "drone_id": drone_id,
+                                "target_id": 0
+                            }
   
                     waypoint = [lat, lon, 30]
                     command = {

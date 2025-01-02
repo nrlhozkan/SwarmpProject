@@ -100,28 +100,27 @@ C:\Users\cgadmin\Desktop\charlie-mnemonic-dev\charlie-mnemonic-dev\Data\other_da
 # HowToRun
 
 1. Start Charlie
-2. Run search and rescue script in separate terminal (**terminal 1**).  
-3. Press **g**. This will save positions of drones and targets. 
-4. Run Simulation Script in another terminal (**terminal2**)
-5. After that press **g** again. 
-6. After step 5, this will be normal process. 
-7. When you decide to finish the test. Press **crtl + c** in **terminal 2**.
-8. This will stop live simulation and show you other simulation. This has slider and steps of test. Every waypoint command means one step. 
-9. If you close the simulation it will save the simulation as a video inside the simulations folder. And it will save all the data of the simulation as a JSON file. You can use this for later to show and see the simulation again. You can use post_processor.py 
+2. Run the search and rescue script in a separate terminal (**terminal 1**).  
+3. Press **g**. This will save the positions of the drones and targets. 
+4. Run the simulation script in a separate terminal (**terminal2**).
+5. After step 5 this will be a normal process. 
+6. If you decide to finish the test. Press **ctrl + c** on **terminal 2**.
+7. This will stop the live simulation and show you another simulation. This has sliders and test steps. Each waypoint command is a step. 
+8. When you close the simulation, it will save the simulation as a video inside the simulations folder. And it will save all the data from the simulation as a JSON file. You can use this to show and view the simulation again later. You can use post_processor.py 
 
 # Specific Scripts
 
-1. Simulation Script (simulator.py)
+1. Simulation script (simulator.py)
 
-It is a live simulator. It reads the initial positions of drones and targets and visualize it in the beginning. When charlie send waypoint commands it visualize them live. This simulation has 3D and 2D options. You can select them as you want. You can send commands like (assign_waypoint_to_drone, set_speed, assign_target_to_drone). Find examples of them in test_1 and test_2 files. It has interval bug, sometimes it appears after pressing ctrl + c related to mathplotlib. I could not fixed yet. It also publish the telemetry data of drones and targets. You can find them in my drone control script (simulation_drone_control_new.py). If you need you can arrange them.
+This is a live simulator. It reads the initial positions of drones and targets and visualises them at the beginning. When Charlie sends waypoint commands, it visualises them live. This simulation has 3D and 2D options. You can select them as you like. You can send commands like (assign_waypoint_to_drone, set_speed, assign_target_to_drone). See test_1 and test_2 for examples. It has interval bug, sometimes it appears after pressing ctrl + c related to mathplotlib. I could not fix it yet. It also publishes the telemetry data of drones and targets. You can find it in my drone control script (simulation_drone_control_new.py). You can rearrange it if you like.
 
-Notes: The speeds of drones are multiplied by 10 with to quickly reach the desired waypoints. If charlie set the speed to 3m/s, it will be 30 m/s in simulation. The speed of targets are 20 m/s. The targets moves randomly. When you send a waypoint to drones, charlie will wait for all drones until they all reach the desired or (commanded) waypoints. Then you will get your response. It will be same in real world application.
+A few notes: The speeds of the drones are multiplied by 10 to reach the desired waypoints quickly. If Charlie set the speed to 3m/s, it will be 30m/s in the simulation. The speed of the targets is 20m/s. The targets move randomly. If you send a waypoint to drones, charlie will wait for all drones to reach the desired or (commanded) waypoint. Then you will get your answer. It will be the same in the real world.
 
 2. Post Processor
 
-It is a post processor that simulate the same simulation after pressing crtl + c in the main simulation. When you run it, it will ask you to provide the file location of the recorded states (recorded_states.json). (*The file location will be where you run the simulation script*)
+This is a post processor that simulates the same simulation after pressing crtl + c in the main simulation. When you run it, it will ask you to specify the location of the recorded states file (recorded_states.json). (*The location of the file is where you run the simulation script*)
 
-3. The others are mostly same codes. I just add some functionalities.
+3. The rest is mostly the same code. I just add some functionality.
 
 
 
